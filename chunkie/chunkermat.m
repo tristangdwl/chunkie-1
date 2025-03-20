@@ -100,10 +100,10 @@ elseif strcmpi(quad,'native')
     if nonsmoothonly
         sysmat = sparse(chnkr.npt,chnkr.npt);
     else
-        if (quadorder ~= chnkr.k)
-            warning(['native rule: quadorder', ... 
-                ' must equal chunker order (%d)'],chnkr.k)
-        end
+        % if (quadorder ~= chnkr.k)
+        %     warning(['native rule: quadorder', ... 
+        %         ' must equal chunker order (%d)'],chnkr.k)
+        % end
         sysmat = chnk.quadnative.buildmat(chnkr,kern,opdims);
     end
 else
