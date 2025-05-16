@@ -1,4 +1,4 @@
-function obj = helm2dquas(type, zk, kappa, d, coefs, quad_opts)
+function obj = helm2dquas(type, zk, kappa, d, coefs, quad_opts, iloc)
 %KERNEL.HELM2DQUAS   Construct the quasi periodic Helmholtz kernel.
 %   KERNEL.HELM2DQUAS('s', ZK, KAPPA, D) or 
 %   KERNEL.HELM2DQUAS('single', ZK, KAPPA, D) constructs the
@@ -37,6 +37,8 @@ function obj = helm2dquas(type, zk, kappa, d, coefs, quad_opts)
 %       quad_opts.N - (40) number of lattice sums
 %       quad_opts.m - (1e4) number of trapezoid rule quadrature nodes
 %       quad_opts.a - (a) length of trpezoid quadrature rule
+%
+%   iloc - (true) if true, include the periodic copy in the unit cell
 %   
 % See also CHNK.HELM2DQUAS.KERN.
 
@@ -60,7 +62,7 @@ obj.opdims = [numel(kappa) 1];
 l=2; N = 40; a = 15; M = 1e4;
 
 if nargin == 6
-    if isefield(quad_opts,'l')
+    if isfield(quad_opts,'l')
         l = quad_opts.l;
     end
     if isfield(quad_opts,'N')
@@ -72,6 +74,10 @@ if nargin == 6
     if isfield(quad_opts,'a')
         a = quad_opts.a;
     end
+end
+
+if nargin < 7
+    iloc = 1;
 end
 
 ns = (0:N).';
@@ -94,7 +100,7 @@ switch lower(type)
 
     case {'s', 'single'}
         obj.type = 's';
-        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 's',quas_param);
+        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 's',quas_param,[],iloc);
         obj.fmm = [];
         obj.sing = 'log';
         if isscalar(kappa)
@@ -106,7 +112,7 @@ switch lower(type)
 
     case {'d', 'double'}
         obj.type = 'd';
-        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 'd',quas_param);
+        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 'd',quas_param,[],iloc);
         obj.fmm = [];
         obj.sing = 'log';
         if isscalar(kappa)
@@ -118,7 +124,7 @@ switch lower(type)
 
     case {'sp', 'sprime'}
         obj.type = 'sp';
-        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 'sprime',quas_param);
+        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 'sprime',quas_param,[],iloc);
         obj.fmm = [];
         obj.sing = 'log';
 
@@ -135,7 +141,7 @@ switch lower(type)
         end
         obj.type = 'c';
         obj.params.coefs = coefs;
-        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 'c',quas_param, coefs);
+        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 'c',quas_param, coefs,iloc);
         obj.fmm = [];
         obj.sing = 'log';
         if isscalar(kappa)
@@ -152,13 +158,18 @@ switch lower(type)
         end
         obj.type = 'cprime';
         obj.params.coefs = coefs;
-        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 'cprime',quas_param, coefs);
+        obj.eval = @(s,t) chnk.helm2dquas.kern(zk, s, t, 'cprime',quas_param, coefs,iloc);
         obj.fmm = [];
         obj.sing = 'hs';
 
     otherwise
         error('Unknown Helmholtz kernel type ''%s''.', type);
 
+end
+
+if ~iloc
+    obj.splitinfo = [];
+    obj.sing = 'log';
 end
 
 end

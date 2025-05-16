@@ -1,4 +1,4 @@
-function [val,grad,hess] = green(src,targ,zk,kappa,d,sn,l)
+function [val,grad,hess] = green(src,targ,zk,kappa,d,sn,l,varargin)
 %CHNK.HELM2DQUAS.GREEN evaluate the quasiperiodic helmholtz green's function
 % for the given sources and targets
 %
@@ -8,11 +8,15 @@ function [val,grad,hess] = green(src,targ,zk,kappa,d,sn,l)
 %   d - period
 %   sn - precomputed lattice sum integrals 
 %       (see chnk.helm2dquas.latticecoefs)
+%   varargin{1} - iloc: optional boolean, default is true, include the source in the
+%       unit cell
 %
 % see also CHNK.HELM2DQUAS.KERN
 [~,nsrc] = size(src);
 [~,ntarg] = size(targ);
 
+iloc = 1;
+if length(varargin) == 1, iloc = varargin{1}; end
 
 xs = repmat(src(1,:),ntarg,1);
 ys = repmat(src(2,:),ntarg,1);
@@ -40,7 +44,7 @@ r = r(:);
 
 npt = size(r,1);
 
-ythresh = d/2;
+ythresh = 2*d/2;
 % ythresh = d/10;
 iclose = abs(ry) < ythresh;
 ifar = ~iclose;
@@ -92,7 +96,6 @@ hess(:,ifar,3) = sum((beta.*(sqrt(ryfar.^2)./ryfar)).^2.*fhat,3)/d;
 % hess(:,ifar,:) = [hxx,hxy,hyy];
 end
 
-
 end
 
 alpha = (exp(1i*kappa(:)*d));
@@ -101,7 +104,9 @@ val_near=0;
 grad_near = zeros(1,1,2);
 hess_near = zeros(1,1,3);
 if ~isempty(rxclose)
-    for i = -l:l
+    ls = [-l:-1, 1:l];
+    ls = -l:l;
+    for i = ls
         rxi = rxclose - i*d;
         if nargout>2
         [vali,gradi,hessi] = chnk.helm2d.green(zk,[0;0],[rxi.';ryclose.']);
@@ -123,6 +128,38 @@ if ~isempty(rxclose)
         val_near = val_near + vali.*alpha.^i;
         end
     end
+
+    % if iloc
+    %     islf = 1:numel(rxclose);
+    % else
+    %     islf = (nx(iclose) ~= 0);
+    % end
+    % 
+    % if any(islf)
+    % if nargout>2
+    %     [vali,gradi,hessi] = chnk.helm2d.green(zk,[0;0],[rxclose(islf).';ryclose(islf).']);
+    %     vali = reshape(vali,1,[],1);
+    %     gradi = reshape(gradi,1,[],2);
+    %     hessi = reshape(hessi,1,[],3);
+    %     val_near(:,islf,:) = val_near(:,islf,:) + vali;
+    %     grad_near(:,islf,:) = grad_near(:,islf,:) + gradi;
+    %     hess_near(:,islf,:) = hess_near(:,islf,:) + hessi;
+    % elseif nargout > 1
+    %     [vali,gradi] = chnk.helm2d.green(zk,[0;0],[rxclose(islf).';ryclose(islf).']);
+    %     vali = reshape(vali,1,[],1);
+    %     gradi = reshape(gradi,1,[],2);
+    %     val_near(:,islf,:) = val_near(:,islf,:) + vali;
+    %     grad_near(:,islf,:) = grad_near(:,islf,:) + gradi;
+    % else
+    %     vali = chnk.helm2d.green(zk,[0;0],[rxclose(islf).';ryclose(islf).']);
+    %     vali = reshape(vali,1,[],1);
+    %     val_near(:,islf,:) = val_near(:,islf,:) + vali;
+    % end
+    % end
+    
+
+
+
     
     % sn = sn.';
     N = size(sn,2)-1;
@@ -203,6 +240,33 @@ if nargout>2
 hess = reshape(quasi_phase.*hess,nkappa*ntarg,nsrc,3);
 end
 % end
+
+% if ~iloc
+%     islf = (nx(:) ~= 0) | ifar(:);
+%     if any(islf) 
+%         rx = rx + nx(:).'*d;
+% 
+%         [vali,gradi,hessi] = chnk.helm2d.green(zk,[0;0],[rx(islf).';ry(islf).']);
+% 
+%         val = reshape(val,nkappa,ntarg*nsrc);
+%         val(:,islf) = val(:,islf) - reshape(vali,1,[]);
+%         val = reshape(val,nkappa*ntarg,nsrc);
+% 
+%         if nargout > 1
+%             grad = reshape(grad,nkappa,ntarg*nsrc,2);
+%             grad(:,islf,:) = grad(:,islf,:) - reshape(gradi,1,[],2);
+%             grad = reshape(grad,nkappa*ntarg,nsrc,2);
+%         end
+%         if nargout > 2
+%             % size(hess)
+%             hess = reshape(hess,nkappa,ntarg*nsrc,3);
+%             hess(:,islf,:) = hess(:,islf,:) - reshape(hessi,1,[],3);
+%             hess = reshape(hess,nkappa*ntarg,nsrc,3);
+%             % size(hess)
+%         end
+%     end
+% end
+
 
 end
 
