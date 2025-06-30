@@ -1,5 +1,5 @@
-function [val,grad,hess] = green(src,targ,zk,kappa,d,sn,l,varargin)
-%CHNK.HELM2DQUAS.GREEN evaluate the quasiperiodic helmholtz green's function
+function [val,grad,hess] = green(src,targ,zk,kappa,d,sn,l)
+%CHNK.HELM2DQUAS.GREEN evaluate the quasiperiodic Helmholtz Green's function
 % for the given sources and targets
 %
 % Input:
@@ -8,15 +8,10 @@ function [val,grad,hess] = green(src,targ,zk,kappa,d,sn,l,varargin)
 %   d - period
 %   sn - precomputed lattice sum integrals 
 %       (see chnk.helm2dquas.latticecoefs)
-%   varargin{1} - iloc: optional boolean, default is true, include the source in the
-%       unit cell
 %
 % see also CHNK.HELM2DQUAS.KERN
 [~,nsrc] = size(src);
 [~,ntarg] = size(targ);
-
-iloc = 1;
-if length(varargin) == 1, iloc = varargin{1}; end
 
 xs = repmat(src(1,:),ntarg,1);
 ys = repmat(src(2,:),ntarg,1);
@@ -45,7 +40,6 @@ r = r(:);
 npt = size(r,1);
 
 ythresh = 2*d/2;
-% ythresh = d/10;
 iclose = abs(ry) < ythresh;
 ifar = ~iclose;
 
@@ -80,20 +74,17 @@ xi_m = kappa(:) + 2*pi/d*ms;
 % beta = sqrt((xi_m.^2-zk^2));
 beta = sqrt(1i*(xi_m-zk)).*sqrt(-1i*(xi_m+zk));
 
-% fhat = exp(-beta.*sqrt(ryfar.^2))./beta.*exp(1i*xi_m.*rxfar)/2;
 fhat = exp(-beta.*sqrt(ryfar.^2) + 1i*xi_m.*rxfar)./(2*beta);
 val(:,ifar,:) = sum(fhat,3)/(d);
 if nargout > 1
 grad(:,ifar,1) = sum(1i*xi_m.*fhat,3)/d;
 grad(:,ifar,2) = sum(-beta.*(sqrt(ryfar.^2)./ryfar).*fhat,3)/d;
-% grad(:,ifar,:) =[gx,gy];
 end
 
 if nargout >2
 hess(:,ifar,1) = sum(-xi_m.^2.*fhat,3)/d;
 hess(:,ifar,2) = sum(-1i*xi_m.*beta.*(sqrt(ryfar.^2)./ryfar).*fhat,3)/d;
 hess(:,ifar,3) = sum((beta.*(sqrt(ryfar.^2)./ryfar)).^2.*fhat,3)/d;
-% hess(:,ifar,:) = [hxx,hxy,hyy];
 end
 
 end
@@ -129,39 +120,6 @@ if ~isempty(rxclose)
         end
     end
 
-    % if iloc
-    %     islf = 1:numel(rxclose);
-    % else
-    %     islf = (nx(iclose) ~= 0);
-    % end
-    % 
-    % if any(islf)
-    % if nargout>2
-    %     [vali,gradi,hessi] = chnk.helm2d.green(zk,[0;0],[rxclose(islf).';ryclose(islf).']);
-    %     vali = reshape(vali,1,[],1);
-    %     gradi = reshape(gradi,1,[],2);
-    %     hessi = reshape(hessi,1,[],3);
-    %     val_near(:,islf,:) = val_near(:,islf,:) + vali;
-    %     grad_near(:,islf,:) = grad_near(:,islf,:) + gradi;
-    %     hess_near(:,islf,:) = hess_near(:,islf,:) + hessi;
-    % elseif nargout > 1
-    %     [vali,gradi] = chnk.helm2d.green(zk,[0;0],[rxclose(islf).';ryclose(islf).']);
-    %     vali = reshape(vali,1,[],1);
-    %     gradi = reshape(gradi,1,[],2);
-    %     val_near(:,islf,:) = val_near(:,islf,:) + vali;
-    %     grad_near(:,islf,:) = grad_near(:,islf,:) + gradi;
-    % else
-    %     vali = chnk.helm2d.green(zk,[0;0],[rxclose(islf).';ryclose(islf).']);
-    %     vali = reshape(vali,1,[],1);
-    %     val_near(:,islf,:) = val_near(:,islf,:) + vali;
-    % end
-    % end
-    
-
-
-
-    
-    % sn = sn.';
     N = size(sn,2)-1;
     ns = (0:N);
     ns_use = (0:N+2);
@@ -185,9 +143,6 @@ if ~isempty(rxclose)
     
     val_far = 0.25*1i*Js(:,:,1).*sn(:,:,1) + 0.5*1i*sum(sn(:,:,2:end).*Js(:,:,2:end-2).*cs(:,:,2:end),3);
     val(:,iclose) = val_near+val_far;
-    
-    
-    
     
     if nargout >1
         DJs = cat(3,-Js(:,:,2),.5*(Js(:,:,1:end-3)-Js(:,:,3:end-1)))*zk;
@@ -239,34 +194,5 @@ end
 if nargout>2
 hess = reshape(quasi_phase.*hess,nkappa*ntarg,nsrc,3);
 end
-% end
-
-% if ~iloc
-%     islf = (nx(:) ~= 0) | ifar(:);
-%     if any(islf) 
-%         rx = rx + nx(:).'*d;
-% 
-%         [vali,gradi,hessi] = chnk.helm2d.green(zk,[0;0],[rx(islf).';ry(islf).']);
-% 
-%         val = reshape(val,nkappa,ntarg*nsrc);
-%         val(:,islf) = val(:,islf) - reshape(vali,1,[]);
-%         val = reshape(val,nkappa*ntarg,nsrc);
-% 
-%         if nargout > 1
-%             grad = reshape(grad,nkappa,ntarg*nsrc,2);
-%             grad(:,islf,:) = grad(:,islf,:) - reshape(gradi,1,[],2);
-%             grad = reshape(grad,nkappa*ntarg,nsrc,2);
-%         end
-%         if nargout > 2
-%             % size(hess)
-%             hess = reshape(hess,nkappa,ntarg*nsrc,3);
-%             hess(:,islf,:) = hess(:,islf,:) - reshape(hessi,1,[],3);
-%             hess = reshape(hess,nkappa*ntarg,nsrc,3);
-%             % size(hess)
-%         end
-%     end
-% end
-
-
 end
 

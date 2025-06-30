@@ -68,8 +68,6 @@ function submat=kern(zk,srcinfo,targinfo,type,quas_param,varargin)
 %   varargin{1} - coef: length 2 array in the combined layer 
 %                 formula, 2x2 matrix for all kernels
 %                 otherwise does nothing
-%   varargin{2} - iloc: optional boolean, default is true, include the 
-%                 source in the unit cell
 %
 % Output:
 %   submat - the evaluation of the selected kernel for the
@@ -82,9 +80,6 @@ function submat=kern(zk,srcinfo,targinfo,type,quas_param,varargin)
 src = srcinfo.r(:,:);
 targ = targinfo.r(:,:);
 
-
-iloc = 1;
-if length(varargin) == 2, iloc = varargin{2}; end
 
 kappa = quas_param.kappa;
 d = quas_param.d;
@@ -99,7 +94,7 @@ nkappa = length(kappa);
 % double layer
 if strcmpi(type,'d')
   srcnorm = srcinfo.n(:,:);
-  [~,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [~,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
   nx = repmat(srcnorm(1,:),nkappa*nt,1);
   ny = repmat(srcnorm(2,:),nkappa*nt,1);
   submat = -(grad(:,:,1).*nx + grad(:,:,2).*ny);
@@ -108,7 +103,7 @@ end
 % normal derivative of single layer
 if strcmpi(type,'sprime')
   targnorm = targinfo.n(:,:);
-  [~,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [~,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
   nx = repmat(reshape(targnorm(1,:),1,nt,1),nkappa,1,ns);
   nx = reshape(nx,[],ns);
   ny = repmat(reshape(targnorm(2,:),1,nt,1),nkappa,1,ns);
@@ -119,7 +114,7 @@ end
 
 % single later
 if strcmpi(type,'s')
-  submat = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  submat = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
   submat = reshape(submat,[],ns);
 end
 
@@ -127,7 +122,7 @@ end
 if strcmpi(type,'dprime')
   targnorm = targinfo.n(:,:);
   srcnorm = srcinfo.n(:,:);
-  [~,~,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [~,~,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
   nxsrc = repmat(srcnorm(1,:),nkappa*nt,1);
   nysrc = repmat(srcnorm(2,:),nkappa*nt,1);
   % nxtarg = repmat((targnorm(1,:)).',1,ns);
@@ -143,13 +138,13 @@ end
 
 % gradient of single layer
 if strcmpi(type,'sgrad')
-    [~,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+    [~,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
     submat = reshape(permute(grad,[1,3,2]),[],ns);
 end
 
 % gradient of double layer
 if strcmpi(type,'dgrad')
-    [~,~,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+    [~,~,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
     submat = -(hess(:,:,1:2).*reshape(srcinfo.n(1,:),1,[],1)+hess(:,:,2:3).*reshape(srcinfo.n(2,:),1,[],1));
     submat = reshape(permute(submat,[1,3,2]),[],ns);
 end
@@ -159,7 +154,7 @@ if strcmpi(type,'c')
   srcnorm = srcinfo.n(:,:);
   coef = ones(2,1);
   if(nargin >= 6); coef = varargin{1}; end
-  [submats,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [submats,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
   nx = repmat(srcnorm(1,:),nkappa*nt,1);
   ny = repmat(srcnorm(2,:),nkappa*nt,1);
   submatd = -(grad(:,:,1).*nx + grad(:,:,2).*ny);
@@ -174,7 +169,7 @@ if strcmpi(type,'cprime')
   srcnorm = srcinfo.n(:,:);
 
   % Get gradient and hessian info
-  [~,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [~,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
 
   nxsrc = repmat(srcnorm(1,:),nkappa*nt,1);
   nysrc = repmat(srcnorm(2,:),nkappa*nt,1);
@@ -202,7 +197,7 @@ if strcmpi(type,'c2trans')
   srcnorm = srcinfo.n(:,:);
 
   % Get gradient and hessian info
-  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
 
   nxsrc = repmat(srcnorm(1,:),nkappa*nt,1);
   nysrc = repmat(srcnorm(2,:),nkappa*nt,1);
@@ -234,7 +229,7 @@ end
 if strcmpi(type,'cgrad')
     coef = ones(2,1);
     if(nargin >= 6); coef = varargin{1}; end
-    [~,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+    [~,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
 
     submats = reshape(permute(grad,[1,3,2]),[],ns);
 
@@ -253,7 +248,7 @@ if strcmpi(type,'all')
   cc = varargin{1};
 
   % Get gradient and hessian info
-  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
 
   nxsrc = repmat(srcnorm(1,:),nkappa*nt,1);
   nysrc = repmat(srcnorm(2,:),nkappa*nt,1);
@@ -285,7 +280,7 @@ if strcmpi(type,'trans_rep')
   coef = ones(2,1);
   if(nargin >= 6); coef = varargin{1}; end;
   srcnorm = srcinfo.n(:,:);
-  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
 
   submats = reshape(submats,[],ns);
   nxsrc = repmat(srcnorm(1,:),nkappa*nt,1);
@@ -307,7 +302,7 @@ if strcmpi(type,'trans_rep_prime')
   submat = zeros(nt,ns);
 
   % Get gradient and hessian info
-  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
 
   nxsrc = repmat(srcnorm(1,:),nkappa*nt,1);
   nysrc = repmat(srcnorm(2,:),nkappa*nt,1);
@@ -336,7 +331,7 @@ if strcmpi(type,'trans_rep_grad')
   
   % submat = zeros(nt,ns,6);
   % S
-  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
+  [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l);
 
   nxsrc = repmat(srcnorm(1,:),nkappa*nt,1);
   nysrc = repmat(srcnorm(2,:),nkappa*nt,1);
