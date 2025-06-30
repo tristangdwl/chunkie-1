@@ -158,7 +158,7 @@ end
 if strcmpi(type,'c')
   srcnorm = srcinfo.n(:,:);
   coef = ones(2,1);
-  if(nargin == 6); coef = varargin{1}; end
+  if(nargin >= 6); coef = varargin{1}; end
   [submats,grad] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
   nx = repmat(srcnorm(1,:),nkappa*nt,1);
   ny = repmat(srcnorm(2,:),nkappa*nt,1);
@@ -169,7 +169,7 @@ end
 % normal derivative of combined field
 if strcmpi(type,'cprime')
   coef = ones(2,1);
-  if(nargin == 6); coef = varargin{1}; end
+  if(nargin >= 6); coef = varargin{1}; end
   targnorm = targinfo.n(:,:);
   srcnorm = srcinfo.n(:,:);
 
@@ -196,7 +196,7 @@ end
 % Dirichlet and neumann data corresponding to combined field
 if strcmpi(type,'c2trans') 
   coef = ones(1,2);
-  if(nargin == 6); coef = varargin{1}; end
+  if(nargin >= 6); coef = varargin{1}; end
   if numel(coef) == 2, coef = repmat(coef(:).',2,1); end
   targnorm = targinfo.n(:,:);
   srcnorm = srcinfo.n(:,:);
@@ -233,7 +233,7 @@ end
 % gradient of combined field
 if strcmpi(type,'cgrad')
     coef = ones(2,1);
-    if(nargin == 6); coef = varargin{1}; end
+    if(nargin >= 6); coef = varargin{1}; end
     [~,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
 
     submats = reshape(permute(grad,[1,3,2]),[],ns);
@@ -283,7 +283,7 @@ end
 if strcmpi(type,'trans_rep') 
 
   coef = ones(2,1);
-  if(nargin == 6); coef = varargin{1}; end;
+  if(nargin >= 6); coef = varargin{1}; end;
   srcnorm = srcinfo.n(:,:);
   [submats,grad,hess] = chnk.helm2dquas.green(src,targ,zk,kappa,d,sn,l,iloc);
 
@@ -292,7 +292,7 @@ if strcmpi(type,'trans_rep')
   nysrc = repmat(srcnorm(2,:),nkappa*nt,1);
   submatd = -(grad(:,:,1).*nxsrc + grad(:,:,2).*nysrc);
 
-  submat = zeros(nkappa*nt,2*ns);
+  submat = zeros(nkappa*nt,2*ns,'like',1i);
   submat(1:1:end,1:2:2*ns) = coef(1)*submatd;
   submat(1:1:end,2:2:2*ns) = coef(2)*submats;
 end
@@ -300,7 +300,7 @@ end
 % Neumann data corresponding to transmission rep
 if strcmpi(type,'trans_rep_prime')
   coef = ones(2,1);
-  if(nargin == 6); coef = varargin{1}; end;
+  if(nargin >= 6); coef = varargin{1}; end;
   targnorm = targinfo.n(:,:);
   srcnorm = srcinfo.n(:,:);
   
@@ -330,7 +330,7 @@ end
 % Gradient correpsonding to transmission rep
 if strcmpi(type,'trans_rep_grad')
   coef = ones(2,1);
-  if(nargin == 6); coef = varargin{1}; end;
+  if(nargin >= 6); coef = varargin{1}; end;
   
   srcnorm = srcinfo.n(:,:);
   

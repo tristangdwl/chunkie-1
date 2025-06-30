@@ -97,7 +97,7 @@ function quasiperiodicTest1()
 % problem parameters
 d= 8;
 zk = 1;
-kappa = .05+0.1i;
+kappa = .05+.1i;
 
 % setup geometry
 nch = 2^3;
