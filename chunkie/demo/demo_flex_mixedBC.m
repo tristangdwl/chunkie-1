@@ -65,8 +65,6 @@ clamp_bc_kern = @(s,t) chnk.flex2d.kern(zk, s, t, 'clamped_plate_bcs', nu);
 
 flex_free_kern = @(s,t) chnk.flex2d.kern(zk, s, t, 's');
 
-
-
 % get free plate BCs
 rhs_f = -free_bc_kern(src,chnkr_f);
 % get clamped plate BCs
