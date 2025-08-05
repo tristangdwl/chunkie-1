@@ -4,6 +4,7 @@ function [val,grad,hess,der3,der4,der5] = helmdkdiffgreen(k,src,targ,ifr2logr)
 % for the given sources and targets, i.e. 
 %
 % G(x,y) = d/d(k^2) [(i/4 H_0^(1)(k|x-y|) + 1/(2 pi) log(|x-y|))]
+%        = d/d(k^2) (i/4 H_0^(1)(k|x-y|) = -i/8k |x-y| H_1^(1)(k|x-y|)
 %
 % or the difference of the Helmholtz and Laplace Green funcions 
 % and k^2 r^2 log r/ 8 pi (a constant times the biharmonic Green function)
