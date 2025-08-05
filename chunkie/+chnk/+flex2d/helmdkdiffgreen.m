@@ -211,6 +211,59 @@ const1 = (io4+(log(2)-gam-log(k))*o2p);
 % relevant parts of hankel function represented as power series
 [cf1,cf2] = chnk.flex2d.besseldiff_etc_pscoefs(nterms);
 cf1(1) = cf1(1)*r2logrfac;
+kpow = (1:nterms).*(k*k).^(0:(nterms-1)); 
+cf1 = cf1(:).*kpow(:); cf2 = cf2(:).*kpow(:);
+
+logr = log(rsus);
+
+j0m1 = chnk.flex2d.even_pseval(cf1,rsus);
+f = chnk.flex2d.even_pseval(cf2,rsus);
+
+% differentiate power series to get derivatives
+fac = 2*(1:nterms);
+d21 = fac(:).*(fac(:)-1)-fac(:);
+fd21 = chnk.flex2d.even_pseval(cf2(:).*d21,rsus).*rm2;
+cf1 = cf1.*fac(:); cf2 = cf2.*fac(:);
+j0m1d1 = chnk.flex2d.even_pseval(cf1,rsus).*rm1;
+fd1 = chnk.flex2d.even_pseval(cf2,rsus).*rm1;
+cf1 = cf1.*(fac(:)-1); cf2 = cf2.*(fac(:)-1);
+j0m1d2 = chnk.flex2d.even_pseval(cf1,rsus).*rm2;
+fd2 = chnk.flex2d.even_pseval(cf2,rsus).*rm2;
+
+cf1 = cf1(:).*(fac(:)-2); cf1 = cf1(2:end);
+cf2 = cf2(:).*(fac(:)-2); cf2 = cf2(2:end);
+j0m1d3 = chnk.flex2d.even_pseval(cf1,rsus).*rm1;
+
+fd3 = chnk.flex2d.even_pseval(cf2,rsus).*rm1;
+fac = fac(1:end-1);
+cf1 = cf1(:).*(fac(:)-1); cf2 = cf2(:).*(fac(:)-1);
+j0m1d4 = chnk.flex2d.even_pseval(cf1,rsus).*rm2;
+fd4 = chnk.flex2d.even_pseval(cf2,rsus).*rm2;
+
+cf1 = cf1(:).*(fac(:)-2); cf1 = cf1(2:end);
+cf2 = cf2(:).*(fac(:)-2); cf2 = cf2(2:end);
+j0m1d5 = chnk.flex2d.even_pseval(cf1,rsus).*rm1;
+fd5 = chnk.flex2d.even_pseval(cf2,rsus).*rm1;
+
+% combine to get derivative of i/4 H + log/(2*pi)
+r2fac = -(1-r2logrfac)*k*k*0.25;
+dr2facda = -(1-r2logrfac)*0.25;
+g0(isus) = const1*(j0m1+dr2facda*rsus.*rsus) - o2p*(f  + logr.*j0m1);
+g1(isus) = const1*(j0m1d1+2*dr2facda*rsus) - o2p*(fd1 + logr.*j0m1d1 + j0m1.*rm1);
+g21(isus) = const1*(j0m1d2-j0m1d1.*rm1) - o2p*(fd21 + logr.*(j0m1d2-j0m1d1.*rm1) + 2*j0m1d1.*rm1 - 2*j0m1.*rm2);
+g3(isus) = const1*j0m1d3 - o2p*(fd3 + logr.*j0m1d3 + 3*j0m1d2.*rm1 - ...
+    3*j0m1d1.*rm2 + 2*j0m1.*rm3);
+g4(isus) = const1*j0m1d4 - o2p*(fd4 + logr.*j0m1d4 + 4*j0m1d3.*rm1 - ...
+    6*j0m1d2.*rm2 + 8*j0m1d1.*rm3 - 6*j0m1.*rm4);
+g5(isus) = const1*j0m1d5 - o2p*(fd5 + logr.*j0m1d5 + 5*j0m1d4.*rm1 - ...
+    10*j0m1d3.*rm2 + 20*j0m1d2.*rm3 - 30*j0m1d1.*rm4 + 24*j0m1.*rm5);
+
+
+dconst1da = -1/2/k^2*o2p;
+
+% relevant parts of hankel function represented as power series
+[cf1,cf2] = chnk.flex2d.besseldiff_etc_pscoefs(nterms);
+cf1(1) = cf1(1)*r2logrfac;
 kpow = (k*k).^(1:nterms); 
 cf1 = cf1(:).*kpow(:); cf2 = cf2(:).*kpow(:);
 
@@ -247,15 +300,11 @@ fd5 = chnk.flex2d.even_pseval(cf2,rsus).*rm1;
 
 % combine to get derivative of i/4 H + log/(2*pi)
 r2fac = -(1-r2logrfac)*k*k*0.25;
-g0(isus) = const1*(j0m1+1+r2fac*rsus.*rsus) - o2p*(f  + logr.*j0m1);
-g1(isus) = const1*(j0m1d1+2*r2fac*rsus) - o2p*(fd1 + logr.*j0m1d1 + j0m1.*rm1);
-g21(isus) = const1*(j0m1d2-j0m1d1.*rm1) - o2p*(fd21 + logr.*(j0m1d2-j0m1d1.*rm1) + 2*j0m1d1.*rm1 - 2*j0m1.*rm2);
-g3(isus) = const1*j0m1d3 - o2p*(fd3 + logr.*j0m1d3 + 3*j0m1d2.*rm1 - ...
-    3*j0m1d1.*rm2 + 2*j0m1.*rm3);
-g4(isus) = const1*j0m1d4 - o2p*(fd4 + logr.*j0m1d4 + 4*j0m1d3.*rm1 - ...
-    6*j0m1d2.*rm2 + 8*j0m1d1.*rm3 - 6*j0m1.*rm4);
-g5(isus) = const1*j0m1d5 - o2p*(fd5 + logr.*j0m1d5 + 5*j0m1d4.*rm1 - ...
-    10*j0m1d3.*rm2 + 20*j0m1d2.*rm3 - 30*j0m1d1.*rm4 + 24*j0m1.*rm5);
-
+g0(isus) = g0(isus)+dconst1da*(j0m1+1+r2fac*rsus.*rsus);
+g1(isus) = g1(isus)+dconst1da*(j0m1d1+2*r2fac*rsus);
+g21(isus) = g21(isus)+dconst1da*(j0m1d2-j0m1d1.*rm1);
+g3(isus) = g3(isus)+dconst1da*j0m1d3;
+g4(isus) = g4(isus)+dconst1da*j0m1d4;
+g5(isus) = g5(isus)+dconst1da*j0m1d5;
 end
 
