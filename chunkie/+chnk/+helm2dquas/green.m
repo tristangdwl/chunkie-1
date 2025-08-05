@@ -73,6 +73,7 @@ xi_m = kappa(:) + 2*pi/d*ms;
 
 % beta = sqrt((xi_m.^2-zk^2));
 beta = sqrt(1i*(xi_m-zk)).*sqrt(-1i*(xi_m+zk));
+% beta = sqrt(-1i*(xi_m-zk)).*sqrt(1i*(xi_m+zk));
 
 fhat = exp(-beta.*sqrt(ryfar.^2) + 1i*xi_m.*rxfar)./(2*beta);
 val(:,ifar,:) = sum(fhat,3)/(d);
