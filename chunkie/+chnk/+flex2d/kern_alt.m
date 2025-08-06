@@ -29,6 +29,12 @@ if strcmpi(type, 's') % flexural wave single layer
 
 end
 
+if strcmpi(type, 'santi') % flexural wave single layer
+
+   submat = chnk.flex2d.helmdkdkdiffgreen(zk,src,targ);  
+
+end
+
 %%% BCs
 
 % boundary conditions applied to a point source
