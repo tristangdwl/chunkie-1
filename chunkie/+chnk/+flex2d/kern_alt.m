@@ -51,7 +51,7 @@ if strcmpi(type, 'free_plate_bcs')
     targnorm = targinfo.n;
     targtang = targinfo.d;
     
-    [val, ~, hess, third] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);
+    [val, grad, hess, third] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);
 
     nxtarg = repmat((targnorm(1,:)).',1,ns);
     nytarg = repmat((targnorm(2,:)).',1,ns);
@@ -125,7 +125,7 @@ if strcmpi(type, 'free_plate_eval')
     taux = dx./ds;
     tauy = dy./ds;
 
-    [~, ~, hess, third] = chnk.flex2d.helmdk2diffgreen(zk, src, targ);           % Hankel part
+    [~, ~, hess, third] = chnk.flex2d.helmdkdkdiffgreen(zk, src, targ);           % Hankel part
 
     K1 = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
        third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
@@ -190,7 +190,7 @@ if strcmpi(type, 'clamped_plate')
           fourth(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
           fourth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
           fourth(:, :, 5).*(ny.*tauy.*tauy.*nytarg)) + ...
-          zk^2/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2)); % G_{nx ny ny ny} + 3G_{nx ny tauy tauy}
+          -1/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2)); % G_{nx ny ny ny} + 3G_{nx ny tauy tauy}
 
    K22 = -(third(:,:, 1).*(nx.*nx.*nxtarg) +third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
          third(:, :,4).*(ny.*ny.*nytarg)) + ...
@@ -255,7 +255,7 @@ if strcmpi(type, 'free_plate')
           fourth(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
           fourth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
           fourth(:, :, 5).*(ny.*tauy.*tauy.*nytarg)) + ...
-          zk^2/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2)); % G_{nx ny ny ny} + 3G_{nx ny tauy tauy}
+          -1/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2)); % G_{nx ny ny ny} + 3G_{nx ny tauy tauy}
 
    K22 = -(third(:,:, 1).*(nx.*nx.*nxtarg) +third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
          third(:, :,4).*(ny.*ny.*nytarg)) + ...
@@ -281,7 +281,7 @@ if strcmpi(type, 'free_to_clamped')
 
    targnorm = targinfo.n;
 
-   [~,~,hess,third,fourth] = chnk.flex2d.hkdk2diffgreen(zk,src,targ); 
+   [~,~,hess,third,fourth] = chnk.flex2d.helmdkdkdiffgreen(zk,src,targ); 
 
    nx = repmat(srcnorm(1,:),nt,1);
    ny = repmat(srcnorm(2,:),nt,1);
@@ -356,8 +356,12 @@ if strcmpi(type, 'clamped_to_free')
 
    ds = sqrt(dx.*dx+dy.*dy);
 
-    [~, ~, ~, ~,fourth,fifth,sixth] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);           % Hankel part
+   taux = dx./ds; 
+   tauy = dy./ds;
 
+
+    [~, ~, ~, ~,fourth,fifth] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);           % Hankel part
+    sixth = chnk.flex2d.green_helmsq_sixth(zk,src,targ);
 
     K1xx = -(fifth(:, :, 1).*(nx.*nx.*nx) + fifth(:, :, 2).*(3*nx.*nx.*ny) +...
        fifth(:, :, 3).*(3*nx.*ny.*ny) + fifth(:, :, 4).*(ny.*ny.*ny)) - ...
