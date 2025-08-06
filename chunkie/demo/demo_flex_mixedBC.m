@@ -23,7 +23,8 @@ start = tic;
 chnkr_f = chunkerfunc(@(t) starfish(t,narms1,amp,[0;4],[],1),cparams,pref); 
 chnkr_c = chunkerfunc(@(t) starfish(t,narms2,amp),cparams,pref); 
 
-chnkr = merge([chnkr_f,chnkr_c]);
+% chnkr = merge([chnkr_f,chnkr_c]);
+chnkr = chnkr_c;
 t1 = toc(start);
 
 fprintf('%5.2e s : time to build geo\n',t1)
@@ -46,15 +47,15 @@ start = tic;
 if ibc == 2
 sys = mix_sysmat(chnkr_f,chnkr_c,zk,1,1);
 elseif ibc == 1
-sys = free_sysmat(chnkr,zk,1);
+sys = free_sysmat(chnkr,zk,-1);
 else
-sys = clamped_sysmat(chnkr,zk,1);
+sys = clamped_sysmat(chnkr,zk,-1); %sgn = -1 for exterior
 end
 t1 = toc(start);
 fprintf('%5.2e s : time to assemble matrix\n',t1)
 
 % building RHS
-% src =[]; src.r = [1;2];
+src =[]; src.r = [1;2];
 src =[]; src.r = [0.5;0];%src.r = [0;4.5];
 free_bc_kern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'free_plate_bcs');
 clamp_bc_kern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'clamped_plate_bcs');
@@ -94,11 +95,11 @@ targets = zeros(2,length(xxtarg(:)));
 targets(1,:) = xxtarg(:); targets(2,:) = yytarg(:);
 
 start = tic; 
-in = chunkerinterior(chnkr_c,{xtarg,ytarg}); out_c = ~in;
-in = chunkerinterior(chnkr_f,{xtarg,ytarg}); out_f = ~in;
+% in = chunkerinterior(chnkr_c,{xtarg,ytarg}); out_c = ~in;
+% in = chunkerinterior(chnkr_f,{xtarg,ytarg}); out_f = ~in;
 
-% in = ~chunkerinterior(reverse(chnkr_c),{xtarg,ytarg}); out_c = ~in;
-out = out_c & out_f;
+in = chunkerinterior(chnkr,{xtarg,ytarg}); out = ~in; %out=in;
+% out = out_c & out_f;
 t1 = toc(start);
 
 fprintf('%5.2e s : time to find points in domain\n',t1)
@@ -211,7 +212,14 @@ plot(chnkr,'k','LineWidth',2)
 axis equal tight
 set(gca, "box","off","Xtick",[],"Ytick",[]);
 title('$\log_{10}$ error','Interpreter','latex','FontSize',12)
+if ibc == 2
 title(t,"Mixed BCs")
+elseif ibc == 1
+title(t,"Free BCs")
+else
+title(t,"Clamped BCs")
+end
+
 colorbar
 
 
