@@ -54,7 +54,6 @@ uh= ikern(src,targh_n); u1_fd = (uh(1,:)-uh(3,:))/2/h;
 assert(norm(u1(1,:)-uh(2,:))<1e-9)
 assert(norm(u1(2,:) - u1_fd)<1e-6)
 
-return
 
 %% checking all kernels in the free plate BC 1
 
@@ -72,18 +71,17 @@ u2 = ikern_2(src,targ);
 uh= ikern(src,targh_lap); 
 u2_fd = (uh(1,:)-4*uh(2,:)+uh(3,:)+uh(4,:)+uh(5,:))/h/h + zk^2*uh(2,:);
 
-assert(norm(u1(1,:)-uh(2,:))<1e-9)
-assert(norm(u1(2,:) - u1_fd)<1e-6)
+assert(norm(u2(1,:) - u2_fd)<1e-6)
 
-ikern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'clamped_plate_eval'); 
-ikern_1 = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'clamped_plate'); 
+ikern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'free_plate_eval'); 
+ikern_2 = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'free_plate'); 
 
-u1 = ikern_1(src,targ);
+u2 = ikern_2(src,targ);
 
-uh= ikern(src,targh_n); u1_fd = (uh(1,:)-uh(3,:))/2/h;
+uh= ikern(src,targh_lap); 
+u2_fd = (uh(1,:)-4*uh(2,:)+uh(3,:)+uh(4,:)+uh(5,:))/h/h + zk^2*uh(2,:);
 
-assert(norm(u1(1,:)-uh(2,:))<1e-9)
-assert(norm(u1(2,:) - u1_fd)<1e-6)
+assert(norm(u2(1,:) - u2_fd)<1e-6)
 
 ikern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 's'); 
 ikern_2 = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'free_plate_bcs', nu); 
@@ -96,43 +94,97 @@ u2_fd = (uh(1,:)-4*uh(2,:)+uh(3,:)+uh(4,:)+uh(5,:))/h/h + zk^2*uh(2,:);
 assert(norm(u2_fd-u2(1,:))<1e-6)
 
 
-%%
-if ~ifree
+%% checking all kernels in the free plate BC 2
+
 targh_lap = [];
 nsten = [2,1,0,-1,-2]; dsten = [0,0,0,0,0];
 targh_lap.r = targ.r + h*nsten.*targ.n+h*dsten.*targ.d;
 targh_lap.n = targ.n + 0*nsten;
 targh_lap.d = targ.d + 0*nsten;
 
-ikern_3 = @(s,t) chnk.flex2d.kern(zk, s, t, 'clamped_plate_bc3', nu); 
-% ikern_2 = @(s,t) chnk.flex2d.kern(zk, s, t, 'supported_plate_bcs', nu); 
-u3 = ikern_3(src,targ);%u2 = u2(2);
+ikern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'clamped_plate_eval'); 
+ikern_3 = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'clamped_to_free');
+
+u3 = ikern_3(src,targ);
 
 uh= ikern(src,targh_lap); 
+
 u3_fd_nnn = (0.5*uh(1,:)-uh(2,:)+uh(4,:)-0.5*uh(5,:))/h^3;
 
 targh_lap.r = targ.r + h*nsten.*targ.n+h*targ.d;
 uh_a= ikern(src,targh_lap);
-u3_fd_nnt_a = (uh_a(2,:)-2*uh_a(3,:)+uh_a(4,:))/h^2;
+u3_fd_ntt_a = (-1/12*uh_a(1,:)+2/3*uh_a(2,:)-2/3*uh_a(4,:)+1/12*uh_a(5,:))/h;
+
+targh_lap.r = targ.r + h*nsten.*targ.n;
+uh_b= ikern(src,targh_lap);
+u3_fd_ntt_b = (-1/12*uh_b(1,:)+2/3*uh_b(2,:)-2/3*uh_b(4,:)+1/12*uh_b(5,:))/h;
 
 targh_lap.r = targ.r + h*nsten.*targ.n-h*targ.d;
+uh_c = ikern(src,targh_lap);
+u3_fd_ntt_c = (-1/12*uh_c(1,:)+2/3*uh_c(2,:)-2/3*uh_c(4,:)+1/12*uh_c(5,:))/h;
+
+u3_fd_ntt = (u3_fd_ntt_a - 2*u3_fd_ntt_b + u3_fd_ntt_c)/h^2;
+
+uh_n = u3_fd_ntt_b;
+
+u3_fd = u3_fd_nnn + u3_fd_ntt + zk^2*uh_n;
+
+assert(norm(u3(2,:) - u3_fd)<2e-6)
+
+ikern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'free_plate_eval'); 
+ikern_3 = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'free_plate'); 
+
+u3 = ikern_3(src,targ);
+
+uh= ikern(src,targh_lap); 
+
+u3_fd_nnn = (0.5*uh(1,:)-uh(2,:)+uh(4,:)-0.5*uh(5,:))/h^3;
+
+targh_lap.r = targ.r + h*nsten.*targ.n+h*targ.d;
+uh_a= ikern(src,targh_lap);
+u3_fd_ntt_a = (-1/12*uh_a(1,:)+2/3*uh_a(2,:)-2/3*uh_a(4,:)+1/12*uh_a(5,:))/h;
+
+targh_lap.r = targ.r + h*nsten.*targ.n;
 uh_b= ikern(src,targh_lap);
-u3_fd_nnt_b = (uh_b(2,:)-2*uh_b(3,:)+uh_b(4,:))/h^2;
+u3_fd_ntt_b = (-1/12*uh_b(1,:)+2/3*uh_b(2,:)-2/3*uh_b(4,:)+1/12*uh_b(5,:))/h;
 
-u3_fd_nnt = (u3_fd_nnt_a - u3_fd_nnt_b)/2/h;
+targh_lap.r = targ.r + h*nsten.*targ.n-h*targ.d;
+uh_c = ikern(src,targh_lap);
+u3_fd_ntt_c = (-1/12*uh_c(1,:)+2/3*uh_c(2,:)-2/3*uh_c(4,:)+1/12*uh_c(5,:))/h;
 
-u3_fd_nn = (uh(2,:)-2*uh(3,:)+uh(4,:))/h^2;
+u3_fd_ntt = (u3_fd_ntt_a - 2*u3_fd_ntt_b + u3_fd_ntt_c)/h^2;
 
-targh_lap.r = targ.r +h*nsten.*targ.d;
-uh= ikern(src,targh_lap);
-u3_fd_tt = (uh(2,:)-2*uh(3,:)+uh(4,:))/h^2;
+uh_n = u3_fd_ntt_b;
 
-u3_fd = u3_fd_nnn + (2-nu)*u3_fd_nnt + (1-nu)*kappa*(u3_fd_tt-u3_fd_nn);
-% u3_fd = (u3_fd_nn);
-[u3;u3_fd;abs(u3_fd-u3)]
-assert(norm(u3_fd-u3)<1e-4)
-% %%
-% f = @(x) exp(2*x);
-% fh = f(h*nsten);
-% (0.5*fh(1)-fh(2)+fh(4)-0.5*fh(5))/h^3 - 2^3*f(0)
-end
+u3_fd = u3_fd_nnn + u3_fd_ntt + zk^2*uh_n;
+
+assert(norm(u3(2,:) - u3_fd)<8e-5)
+
+ikern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 's'); 
+ikern_3 = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'free_plate_bcs', nu); 
+
+u3 = ikern_3(src,targ);
+
+uh= ikern(src,targh_lap); 
+
+u3_fd_nnn = (0.5*uh(1,:)-uh(2,:)+uh(4,:)-0.5*uh(5,:))/h^3;
+
+targh_lap.r = targ.r + h*nsten.*targ.n+h*targ.d;
+uh_a= ikern(src,targh_lap);
+u3_fd_ntt_a = (-1/12*uh_a(1,:)+2/3*uh_a(2,:)-2/3*uh_a(4,:)+1/12*uh_a(5,:))/h;
+
+targh_lap.r = targ.r + h*nsten.*targ.n;
+uh_b= ikern(src,targh_lap);
+u3_fd_ntt_b = (-1/12*uh_b(1,:)+2/3*uh_b(2,:)-2/3*uh_b(4,:)+1/12*uh_b(5,:))/h;
+
+targh_lap.r = targ.r + h*nsten.*targ.n-h*targ.d;
+uh_c = ikern(src,targh_lap);
+u3_fd_ntt_c = (-1/12*uh_c(1,:)+2/3*uh_c(2,:)-2/3*uh_c(4,:)+1/12*uh_c(5,:))/h;
+
+u3_fd_ntt = (u3_fd_ntt_a - 2*u3_fd_ntt_b + u3_fd_ntt_c)/h^2;
+
+uh_n = u3_fd_ntt_b;
+
+u3_fd = u3_fd_nnn + u3_fd_ntt + zk^2*uh_n;
+
+assert(norm(u3(2,:) - u3_fd)<1e-6)
