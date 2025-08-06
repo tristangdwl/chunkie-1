@@ -101,4 +101,12 @@ norm(val2 - uh)
 
 
 
-
+%%
+ntarg = 1e5;
+targ = []; targ.r = 2*(rand(2,ntarg)-0.5) + [3;0];
+tic;
+[valdk,graddk,hessdk,der3dk,der4dk,der5dk] = chnk.flex2d.helmdkdkdiffgreen(k,src.r,targ.r,ifr2logr);
+toc;
+tic;
+[valdk,graddk,hessdk,der3dk,der4dk,der5dk] = chnk.flex2d.hkdiffgreen(k,src.r,targ.r,ifr2logr);
+toc;
