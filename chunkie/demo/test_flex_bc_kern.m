@@ -23,7 +23,7 @@ targh_n.d = targ.d + 0*[1,0,-1];
 
 if ifree
 ikern = @(s,t) chnk.flex2d.kern(zk, s, t, 'free_plate_eval', nu); 
-ikern_1 = @(s,t) chnk.flex2d.kern(zk, s, t, 'free_plate_bc1', nu); 
+ikern_1 = @(s,t) chnk.flex2d.kern(zk, s, t, 'free_to_clamped', nu); 
 else
 ikern = @(s,t) chnk.flex2d.kern(zk, s, t, 'clamped_plate_eval', nu); 
 ikern_1 = @(s,t) chnk.flex2d.kern(zk, s, t, 'clamped_plate_bc1', nu); 

@@ -64,16 +64,10 @@ if strcmpi(type, 'free_plate_bcs')
     tauxtarg = dx1./ds1;
     tauytarg = dy1./ds1;
         
-    firstbc = (hess(:, :, 1).*(nxtarg.*nxtarg + tauxtarg.*tauxtarg) +  ...
-        hess(:, :, 2).*(2*nxtarg.*nytarg + 2*tauxtarg.*tauytarg) + ...
-        hess(:, :, 3).*(nytarg.*nytarg + tauytarg.*tauytarg)) + ...
-        zk^2*val;
+    firstbc = hess(:, :, 1) + hess(:, :, 3) + zk^2*val;
     
-    secondbc = (third(:, :, 1).*(nxtarg.*nxtarg.*nxtarg) + third(:, :, 2).*(3*nxtarg.*nxtarg.*nytarg) +...
-        third(:, :, 3).*(3*nxtarg.*nytarg.*nytarg) + third(:, :, 4).*(nytarg.*nytarg.*nytarg)) +...
-        (third(:, :, 1).*(tauxtarg.*tauxtarg.*nxtarg) + third(:, :, 2).*(tauxtarg.*tauxtarg.*nytarg + 2*tauxtarg.*tauytarg.*nxtarg) +...
-        third(:, :, 3).*(2*tauxtarg.*tauytarg.*nytarg+ tauytarg.*tauytarg.*nxtarg) +...
-        third(:, :, 4).*(tauytarg.*tauytarg.*nytarg))+...
+    secondbc = nxtarg.*(third(:,:,1) + third(:,:,3)) + ...
+        nytarg.*(third(:,:,2) + third(:,:,4)) + ...
         zk^2*(grad(:, :, 1).*nxtarg + grad(:, :, 2).*nytarg);
 
     submat = zeros(2*nt,ns);
@@ -82,8 +76,71 @@ if strcmpi(type, 'free_plate_bcs')
 
 end
 
-%%% 
+%%% INTEGRAL REPRESENTATIONS
 
+% clamped plate kernels for plotting
+if strcmpi(type, 'clamped_plate_eval')
+
+    submat = zeros(nt,2*ns);
+
+    srcnorm = srcinfo.n;
+    srctang = srcinfo.d;
+    nx = repmat(srcnorm(1,:),nt,1);
+    ny = repmat(srcnorm(2,:),nt,1);
+    dx = repmat(srctang(1,:),nt,1);
+    dy = repmat(srctang(2,:),nt,1);
+    ds = sqrt(dx.*dx+dy.*dy);
+
+    taux = dx./ds;
+    tauy = dy./ds;
+
+    [~, ~, hess, third] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);           % Hankel part
+
+    K1 = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
+       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
+       3*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+    K2 =  -(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
+          (hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    submat(:,1:2:end) = K1;
+    submat(:,2:2:end) = K2;
+
+end
+
+% free plate kernels for plotting
+if strcmpi(type, 'free_plate_eval')
+
+    submat = zeros(nt,2*ns);
+
+    srcnorm = srcinfo.n;
+    srctang = srcinfo.d;
+    nx = repmat(srcnorm(1,:),nt,1);
+    ny = repmat(srcnorm(2,:),nt,1);
+    dx = repmat(srctang(1,:),nt,1);
+    dy = repmat(srctang(2,:),nt,1);
+    ds = sqrt(dx.*dx+dy.*dy);
+
+    taux = dx./ds;
+    tauy = dy./ds;
+
+    [~, ~, hess, third] = chnk.flex2d.helmdk2diffgreen(zk, src, targ);           % Hankel part
+
+    K1 = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
+       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
+       3*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+    K2 =  -(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
+          (hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    submat(:,1:2:end) = K1;
+    submat(:,2:2:end) = K2;
+
+end
+
+%%% INTEGRAL EQUATIONS - DIAGONAL BLOCKS
 
 % kernels for the clamped plate integral equation
 if strcmpi(type, 'clamped_plate')
@@ -121,24 +178,24 @@ if strcmpi(type, 'clamped_plate')
    K11 = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
        third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
        3*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
-       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy)); 
+       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy)); % G_{ny ny ny} + 3G_{ny tauy tauy}
 
-   K12 = -(1/(2*zk^2).*(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny)))+...
-          (1/(2*zk^2).*(hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy))); % -G_{ny ny}  + G_{tauy tauy}
+   K12 = -((hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny)))+...
+          ((hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy))); % -G_{ny ny}  + G_{tauy tauy}
 
-   K21 = -(1/(2*zk^2).*(fourth(:, :, 1).*(nx.*nx.*nx.*nxtarg) + fourth(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
+   K21 = -(fourth(:, :, 1).*(nx.*nx.*nx.*nxtarg) + fourth(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
           fourth(:, :, 3).*(3*nx.*nx.*ny.*nytarg + 3*nx.*ny.*ny.*nxtarg) + fourth(:, :, 4).*(3*nx.*ny.*ny.*nytarg +ny.*ny.*ny.*nxtarg)+...
-          fourth(:, :, 5).*(ny.*ny.*ny.*nytarg)) ) - ...
-          (3/(2*zk^2).*(fourth(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ fourth(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
+          fourth(:, :, 5).*(ny.*ny.*ny.*nytarg)) - ...
+          3*(fourth(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ fourth(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
           fourth(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
           fourth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
-          fourth(:, :, 5).*(ny.*tauy.*tauy.*nytarg))) + ...
-          1/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2));
+          fourth(:, :, 5).*(ny.*tauy.*tauy.*nytarg)) + ...
+          zk^2/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2)); % G_{nx ny ny ny} + 3G_{nx ny tauy tauy}
 
-   K22 = -(1/(2*zk^2).*(third(:,:, 1).*(nx.*nx.*nxtarg) +third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
-         third(:, :,4).*(ny.*ny.*nytarg))) + ...
-         (1/(2*zk^2).*(third(:,:, 1).*(taux.*taux.*nxtarg) +third(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + third(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
-         third(:, :,4).*(tauy.*tauy.*nytarg)));
+   K22 = -(third(:,:, 1).*(nx.*nx.*nxtarg) +third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
+         third(:, :,4).*(ny.*ny.*nytarg)) + ...
+         (third(:,:, 1).*(taux.*taux.*nxtarg) +third(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + third(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
+         third(:, :,4).*(tauy.*tauy.*nytarg)); % -G_{nx ny ny}  + G_{nx tauy tauy}
 
   submat = zeros(2*nt,2*ns);
   
@@ -150,65 +207,228 @@ if strcmpi(type, 'clamped_plate')
 end
 
 
-% clamped plate kernels for plotting
-if strcmpi(type, 'clamped_plate_eval')
+% kernels for the free plate integral equation % SAME AS CLAMPED PLATE
+if strcmpi(type, 'free_plate')
+   srcnorm = srcinfo.n;
+   srctang = srcinfo.d;
+   targnorm = targinfo.n;
 
-    submat = zeros(nt,2*ns);
+   nx = repmat(srcnorm(1,:),nt,1);
+   ny = repmat(srcnorm(2,:),nt,1);
+   
+   nxtarg = repmat((targnorm(1,:)).',1,ns);
+   nytarg = repmat((targnorm(2,:)).',1,ns);
+   
+   [~, ~, hess, third] = chnk.flex2d.helmdkdiffgreen(zk, src, targ); 
+   [~, ~, ~, ~, fourth] = chnk.flex2d.helmdkdiffgreen(zk, src, targ, true);
 
-    srcnorm = srcinfo.n;
-    srctang = srcinfo.d;
-    nx = repmat(srcnorm(1,:),nt,1);
-    ny = repmat(srcnorm(2,:),nt,1);
-    dx = repmat(srctang(1,:),nt,1);
-    dy = repmat(srctang(2,:),nt,1);
-    ds = sqrt(dx.*dx+dy.*dy);
+   dx = repmat(srctang(1,:),nt,1);
+   dy = repmat(srctang(2,:),nt,1);
+    
+   ds = sqrt(dx.*dx+dy.*dy);
 
-    taux = dx./ds;
-    tauy = dy./ds;
+   taux = dx./ds;
+   tauy = dy./ds;
+   
+   rx = targ(1,:).' - src(1,:);
+   ry = targ(2,:).' - src(2,:);
+   r2 = rx.^2 + ry.^2;
 
-    [~, ~, hess, third] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);           % Hankel part
+   rn = rx.*nx + ry.*ny;
+   rtau = rx.*taux + ry.*tauy;
+   ntargtau = nxtarg.*taux + nytarg.*tauy;
 
-    K1 = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
+   rntarg = rx.*nxtarg + ry.*nytarg;
+
+   K11 = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
+       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
+       3*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy)); % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+   K12 = -((hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny)))+...
+          ((hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy))); % -G_{ny ny}  + G_{tauy tauy}
+
+   K21 = -(fourth(:, :, 1).*(nx.*nx.*nx.*nxtarg) + fourth(:, :, 2).*(nx.*nx.*nx.*nytarg + 3*nx.*nx.*ny.*nxtarg) + ...
+          fourth(:, :, 3).*(3*nx.*nx.*ny.*nytarg + 3*nx.*ny.*ny.*nxtarg) + fourth(:, :, 4).*(3*nx.*ny.*ny.*nytarg +ny.*ny.*ny.*nxtarg)+...
+          fourth(:, :, 5).*(ny.*ny.*ny.*nytarg)) - ...
+          3*(fourth(:, :, 1).*(nx.*taux.*taux.*nxtarg)+ fourth(:, :, 2).*(nx.*taux.*taux.*nytarg + 2*nx.*taux.*tauy.*nxtarg + ny.*taux.*taux.*nxtarg) +...
+          fourth(:, :, 3).*(2*nx.*taux.*tauy.*nytarg + ny.*taux.*taux.*nytarg + nx.*tauy.*tauy.*nxtarg + 2*ny.*taux.*tauy.*nxtarg) + ...
+          fourth(:, :, 4).*(nx.*tauy.*tauy.*nytarg +2*ny.*taux.*tauy.*nytarg + ny.*tauy.*tauy.*nxtarg) +...
+          fourth(:, :, 5).*(ny.*tauy.*tauy.*nytarg)) + ...
+          zk^2/pi.*(-3*rn.*rntarg./(r2.^2) + 4.*(rn.^3).*rntarg./(r2.^3) + 3*(rn.*rtau.*ntargtau)./ (r2.^2)); % G_{nx ny ny ny} + 3G_{nx ny tauy tauy}
+
+   K22 = -(third(:,:, 1).*(nx.*nx.*nxtarg) +third(:, :, 2).*(nx.*nx.*nytarg + 2*nx.*ny.*nxtarg) + third(:, :, 3).*(2*nx.*ny.*nytarg + ny.*ny.*nxtarg)+...
+         third(:, :,4).*(ny.*ny.*nytarg)) + ...
+         (third(:,:, 1).*(taux.*taux.*nxtarg) +third(:, :, 2).*(taux.*taux.*nytarg + 2*taux.*tauy.*nxtarg) + third(:, :, 3).*(2*taux.*tauy.*nytarg + tauy.*tauy.*nxtarg)+...
+         third(:, :,4).*(tauy.*tauy.*nytarg)); % -G_{nx ny ny}  + G_{nx tauy tauy}
+
+  submat = zeros(2*nt,2*ns);
+  
+  submat(1:2:end,1:2:end) = K11;
+  submat(1:2:end,2:2:end) = K12;
+    
+  submat(2:2:end,1:2:end) = K21;
+  submat(2:2:end,2:2:end) = K22;
+end
+
+
+%%% INTEGRAL EQUATIONS - OFF DIAGONAL BLOCKS
+
+% free plate rep in clamped plate BCs
+if strcmpi(type, 'free_to_clamped')           
+   srcnorm = srcinfo.n;
+   srctang = srcinfo.d;
+
+   targnorm = targinfo.n;
+
+   [~,~,hess,third,fourth] = chnk.flex2d.hkdk2diffgreen(zk,src,targ); 
+
+   nx = repmat(srcnorm(1,:),nt,1);
+   ny = repmat(srcnorm(2,:),nt,1);
+
+   nxtarg = repmat((targnorm(1,:)).',1,ns);
+   nytarg = repmat((targnorm(2,:)).',1,ns);
+
+   dx = repmat(srctang(1,:),nt,1);
+   dy = repmat(srctang(2,:),nt,1);
+
+   ds = sqrt(dx.*dx+dy.*dy);
+
+   taux = dx./ds; 
+   tauy = dy./ds;
+
+    K11 = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
        third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
        3*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
        third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
 
-    K2 =  -(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
+    K12 =  -(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
           (hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
 
-    submat(:,1:2:end) = K1;
-    submat(:,2:2:end) = K2;
+    K1x = -(fourth(:, :, 1).*(nx.*nx.*nx) + fourth(:, :, 2).*(3*nx.*nx.*ny) +...
+       fourth(:, :, 3).*(3*nx.*ny.*ny) + fourth(:, :, 4).*(ny.*ny.*ny)) - ...
+       3*(fourth(:, :, 1).*(nx.*taux.*taux) + fourth(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       fourth(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + fourth(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+    ioff = 1;
+    K1y = -(fourth(:, :, 1+ioff).*(nx.*nx.*nx) + fourth(:, :, 2+ioff).*(3*nx.*nx.*ny) +...
+       fourth(:, :, 3+ioff).*(3*nx.*ny.*ny) + fourth(:, :, 4+ioff).*(ny.*ny.*ny)) - ...
+       3*(fourth(:, :, 1+ioff).*(nx.*taux.*taux) + fourth(:, :, 2+ioff).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       fourth(:, :, 3+ioff).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + fourth(:, :, 4+ioff).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+    K2x =  -(third(:, :, 1).*(nx.*nx) + third(:, :, 2).*(2*nx.*ny) + third(:, :, 3).*(ny.*ny))+...
+          (third(:, :, 1).*(taux.*taux) + third(:, :, 2).*(2*taux.*tauy) + third(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    ioff = 1;
+    K2y =  -(third(:, :, 1+ioff).*(nx.*nx) + third(:, :, 2+ioff).*(2*nx.*ny) + third(:, :, 3+ioff).*(ny.*ny))+...
+          (third(:, :, 1+ioff).*(taux.*taux) + third(:, :, 2+ioff).*(2*taux.*tauy) + third(:, :, 3+ioff).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    K21 = K1x.*nxtarg + K1y.*nytarg;
+
+    K22 = K2x.*nxtarg + K2y.*nytarg;
+
+  submat = zeros(2*nt,2*ns);
+
+  submat(1:2:end,1:2:end) = K11;
+  submat(1:2:end,2:2:end) = K12;
+    
+  submat(2:2:end,1:2:end) = K21;
+  submat(2:2:end,2:2:end) = K22;
 
 end
 
-% clamped plate kernels for plotting
-if strcmpi(type, 'free_plate_eval')
 
-    submat = zeros(nt,2*ns);
+% clamped plate rep in free plate BCs
+if strcmpi(type, 'clamped_to_free')           
+   srcnorm = srcinfo.n;
+   srctang = srcinfo.d;
 
-    srcnorm = srcinfo.n;
-    srctang = srcinfo.d;
-    nx = repmat(srcnorm(1,:),nt,1);
-    ny = repmat(srcnorm(2,:),nt,1);
-    dx = repmat(srctang(1,:),nt,1);
-    dy = repmat(srctang(2,:),nt,1);
-    ds = sqrt(dx.*dx+dy.*dy);
+   targnorm = targinfo.n;
 
-    taux = dx./ds;
-    tauy = dy./ds;
+   nx = repmat(srcnorm(1,:),nt,1);
+   ny = repmat(srcnorm(2,:),nt,1);
 
-    [~, ~, hess, third] = chnk.flex2d.helmdk2diffgreen(zk, src, targ);           % Hankel part
+   nxtarg = repmat((targnorm(1,:)).',1,ns);
+   nytarg = repmat((targnorm(2,:)).',1,ns);
 
-    K1 = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
-       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
-       3*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
-       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+   dx = repmat(srctang(1,:),nt,1);
+   dy = repmat(srctang(2,:),nt,1);
 
-    K2 =  -(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
-          (hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+   ds = sqrt(dx.*dx+dy.*dy);
 
-    submat(:,1:2:end) = K1;
-    submat(:,2:2:end) = K2;
+    [~, ~, ~, ~,fourth,fifth,sixth] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);           % Hankel part
+
+
+    K1xx = -(fifth(:, :, 1).*(nx.*nx.*nx) + fifth(:, :, 2).*(3*nx.*nx.*ny) +...
+       fifth(:, :, 3).*(3*nx.*ny.*ny) + fifth(:, :, 4).*(ny.*ny.*ny)) - ...
+       3*(fifth(:, :, 1).*(nx.*taux.*taux) + fifth(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       fifth(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + fifth(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+    ioff = 2;
+    K1yy = -(fifth(:, :, 1+ioff).*(nx.*nx.*nx) + fifth(:, :, 2+ioff).*(3*nx.*nx.*ny) +...
+       fifth(:, :, 3+ioff).*(3*nx.*ny.*ny) + fifth(:, :, 4+ioff).*(ny.*ny.*ny)) - ...
+       3*(fifth(:, :, 1+ioff).*(nx.*taux.*taux) + fifth(:, :, 2+ioff).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       fifth(:, :, 3+ioff).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + fifth(:, :, 4+ioff).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+    K11 = K1xx + K1yy;
+
+    K1xxx = -(sixth(:, :, 1).*(nx.*nx.*nx) + sixth(:, :, 2).*(3*nx.*nx.*ny) +...
+       sixth(:, :, 3).*(3*nx.*ny.*ny) + sixth(:, :, 4).*(ny.*ny.*ny)) - ...
+       3*(sixth(:, :, 1).*(nx.*taux.*taux) + sixth(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       sixth(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + sixth(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+    ioff = 1;
+    K1xxy = -(sixth(:, :, 1+ioff).*(nx.*nx.*nx) + sixth(:, :, 2+ioff).*(3*nx.*nx.*ny) +...
+       sixth(:, :, 3+ioff).*(3*nx.*ny.*ny) + sixth(:, :, 4+ioff).*(ny.*ny.*ny)) - ...
+       3*(sixth(:, :, 1+ioff).*(nx.*taux.*taux) + sixth(:, :, 2+ioff).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       sixth(:, :, 3+ioff).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + sixth(:, :, 4+ioff).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+    ioff = 2;
+    K1xyy = -(sixth(:, :, 1+ioff).*(nx.*nx.*nx) + sixth(:, :, 2+ioff).*(3*nx.*nx.*ny) +...
+       sixth(:, :, 3+ioff).*(3*nx.*ny.*ny) + sixth(:, :, 4+ioff).*(ny.*ny.*ny)) - ...
+       3*(sixth(:, :, 1+ioff).*(nx.*taux.*taux) + sixth(:, :, 2+ioff).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       sixth(:, :, 3+ioff).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + sixth(:, :, 4+ioff).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+    ioff = 3;
+    K1yyy = -(sixth(:, :, 1+ioff).*(nx.*nx.*nx) + sixth(:, :, 2+ioff).*(3*nx.*nx.*ny) +...
+       sixth(:, :, 3+ioff).*(3*nx.*ny.*ny) + sixth(:, :, 4+ioff).*(ny.*ny.*ny)) - ...
+       3*(sixth(:, :, 1+ioff).*(nx.*taux.*taux) + sixth(:, :, 2+ioff).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       sixth(:, :, 3+ioff).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + sixth(:, :, 4+ioff).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+    K21 = nxtarg.*(K1xxx+K1xyy) + nytarg.*(K1xxy + K1yyy); 
+
+
+    K2xx =  -(fourth(:, :, 1).*(nx.*nx) + fourth(:, :, 2).*(2*nx.*ny) + fourth(:, :, 3).*(ny.*ny))+...
+          (fourth(:, :, 1).*(taux.*taux) + fourth(:, :, 2).*(2*taux.*tauy) + fourth(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    ioff = 2;
+    K2yy =  -(fourth(:, :, 1 + ioff).*(nx.*nx) + fourth(:, :, 2+ioff).*(2*nx.*ny) + fourth(:, :, 3+ioff).*(ny.*ny))+...
+          (fourth(:, :, 1+ioff).*(taux.*taux) + fourth(:, :, 2+ioff).*(2*taux.*tauy) + fourth(:, :, 3+ioff).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    K12 = K2xx+K2yy;
+
+    K2xxx =  -(fifth(:, :, 1).*(nx.*nx) + fifth(:, :, 2).*(2*nx.*ny) + fifth(:, :, 3).*(ny.*ny))+...
+          (fifth(:, :, 1).*(taux.*taux) + fifth(:, :, 2).*(2*taux.*tauy) + fifth(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    ioff = 1;
+    K2xxy =  -(fifth(:, :, 1 + ioff).*(nx.*nx) + fifth(:, :, 2+ioff).*(2*nx.*ny) + fifth(:, :, 3+ioff).*(ny.*ny))+...
+          (fifth(:, :, 1+ioff).*(taux.*taux) + fifth(:, :, 2+ioff).*(2*taux.*tauy) + fifth(:, :, 3+ioff).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    ioff = 2;
+    K2xyy =  -(fifth(:, :, 1 + ioff).*(nx.*nx) + fifth(:, :, 2+ioff).*(2*nx.*ny) + fifth(:, :, 3+ioff).*(ny.*ny))+...
+          (fifth(:, :, 1+ioff).*(taux.*taux) + fifth(:, :, 2+ioff).*(2*taux.*tauy) + fifth(:, :, 3+ioff).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+    
+    ioff = 3;
+    K2yyy =  -(fifth(:, :, 1 + ioff).*(nx.*nx) + fifth(:, :, 2+ioff).*(2*nx.*ny) + fifth(:, :, 3+ioff).*(ny.*ny))+...
+          (fifth(:, :, 1+ioff).*(taux.*taux) + fifth(:, :, 2+ioff).*(2*taux.*tauy) + fifth(:, :, 3+ioff).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+    K22 = nxtarg.*(K2xxx+K2xyy) + nytarg.*(K2xxy + K2yyy); 
+
+  submat = zeros(2*nt,2*ns);
+
+  submat(1:2:end,1:2:end) = K11;
+  submat(1:2:end,2:2:end) = K12;
+    
+  submat(2:2:end,1:2:end) = K21;
+  submat(2:2:end,2:2:end) = K22;
 
 end
 
