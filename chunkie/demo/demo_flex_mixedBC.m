@@ -20,11 +20,12 @@ narms1 = 4;
 narms2 = 3;
 amp = 0.25*0.5;
 start = tic; 
-chnkr_f = chunkerfunc(@(t) starfish(t,narms1,amp,[0;4],[],1),cparams,pref); 
+% chnkr_f = chunkerfunc(@(t) starfish(t,narms1,amp,[0;4],[],1),cparams,pref); 
+chnkr_f = chunkerfunc(@(t) starfish(t,narms1,amp,[0;0],[],3),cparams,pref); 
 chnkr_c = chunkerfunc(@(t) starfish(t,narms2,amp),cparams,pref); 
 
-% chnkr = merge([chnkr_f,chnkr_c]);
-chnkr = chnkr_c;
+chnkr = merge([chnkr_f,chnkr_c]);
+% chnkr = chnkr_c;
 t1 = toc(start);
 
 fprintf('%5.2e s : time to build geo\n',t1)
@@ -41,11 +42,11 @@ quiver(chnkr)
 axis equal
 
 %% Get system matrix and right hand side
-ibc = 0;
+ibc = 2;
 
 start = tic;
 if ibc == 2
-sys = mix_sysmat(chnkr_f,chnkr_c,zk,1,1);
+sys = mix_sysmat(chnkr_f,chnkr_c,zk,1,-1);
 elseif ibc == 1
 sys = free_sysmat(chnkr,zk,-1);
 else
@@ -56,17 +57,17 @@ fprintf('%5.2e s : time to assemble matrix\n',t1)
 
 % building RHS
 src =[]; src.r = [1;2];
-src =[]; src.r = [0.5;0];%src.r = [0;4.5];
+src =[]; src.r = [0.5;0];%src.r = [0;4.];
 free_bc_kern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'free_plate_bcs');
 clamp_bc_kern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 'clamped_plate_bcs');
 
 flex_free_kern = @(s,t) chnk.flex2d.kern_alt(zk, s, t, 's');
 
-% % get free plate BCs
-% rhs_f = -free_bc_kern(src,chnkr_f);
-% % get clamped plate BCs
-% rhs_c = -clamp_bc_kern(src,chnkr_c);
-% rhs = [rhs_f;rhs_c];
+% get free plate BCs
+rhs_f = -free_bc_kern(src,chnkr_f);
+% get clamped plate BCs
+rhs_c = -clamp_bc_kern(src,chnkr_c);
+rhs = [rhs_f;rhs_c];
 
 if ibc == 1
 rhs = -free_bc_kern(src,chnkr);
@@ -77,9 +78,9 @@ end
 %% Solve and plot
 % Solving linear system
 
-start = tic; sol = gmres(sys,rhs,[],1e-12,500); t1 = toc(start);
-fprintf('%5.2e s : time for dense gmres\n',t1)    
-% sol = sys\rhs;
+% start = tic; sol = gmres(sys,rhs,[],1e-12,500); t1 = toc(start);
+% fprintf('%5.2e s : time for dense gmres\n',t1)    
+sol = sys\rhs;
 
 % evaluate at targets and plot
 
@@ -95,11 +96,12 @@ targets = zeros(2,length(xxtarg(:)));
 targets(1,:) = xxtarg(:); targets(2,:) = yytarg(:);
 
 start = tic; 
-% in = chunkerinterior(chnkr_c,{xtarg,ytarg}); out_c = ~in;
-% in = chunkerinterior(chnkr_f,{xtarg,ytarg}); out_f = ~in;
+in = chunkerinterior(chnkr_c,{xtarg,ytarg}); out_c = ~in;
+in = chunkerinterior(chnkr_f,{xtarg,ytarg}); out_f = ~in;
+out = out_c & ~out_f;
 
-in = chunkerinterior(chnkr,{xtarg,ytarg}); out = ~in; %out=in;
-% out = out_c & out_f;
+% in = chunkerinterior(chnkr,{xtarg,ytarg}); out = ~in; %out=in;
+
 t1 = toc(start);
 
 fprintf('%5.2e s : time to find points in domain\n',t1)
@@ -243,7 +245,7 @@ colorbar
 % u2 = free_eval(chnkr_f,sol_f,chnkr_c,zk);
 % norm(u2-sys_fc(1:2:end,:)*sol_f)
 
-function sys = mix_sysmat(chnkr_f,chnkr_c,zk,sgn_c,sgn_f)
+function sys = mix_sysmat(chnkr_f,chnkr_c,zk,sgn_f,sgn_c)
 % build the block system matrix
     sys_ff = free_sysmat(chnkr_f,zk,sgn_f);
     sys_fc = free2clamp_sysmat(chnkr_f,chnkr_c,zk);
