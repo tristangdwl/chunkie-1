@@ -3,14 +3,14 @@ function [val,grad,hess,der3,der4,der5] = helmdkdiffgreen(k,src,targ,ifr2logr)
 % Helmholtz Green function and the Laplace Green function
 % for the given sources and targets, i.e. 
 %
-% G(x,y) = d/d(k^2) [(i/4 H_0^(1)(k|x-y|) + 1/(2 pi) log(|x-y|))]
-%        = d/d(k^2) (i/4 H_0^(1)(k|x-y|) = -i/8k |x-y| H_1^(1)(k|x-y|)
+% G(x,y) = -d/d(k^2) [(i/4 H_0^(1)(k|x-y|) + 1/(2 pi) log(|x-y|))]
+%        = -d/d(k^2) (i/4 H_0^(1)(k|x-y|) = i/8k |x-y| H_1^(1)(k|x-y|)
 %
 % or the difference of the Helmholtz and Laplace Green funcions 
 % and k^2 r^2 log r/ 8 pi (a constant times the biharmonic Green function)
 % i.e. 
 %
-% G(x,y) =  d/d(k^2)[i/4 H_0^(1)(k|x-y|) + 1/(2 pi) log(|x-y|) + ...
+% G(x,y) =  -d/d(k^2)[i/4 H_0^(1)(k|x-y|) + 1/(2 pi) log(|x-y|) + ...
 %                    - k^2/(8*pi) |x-y|^2 log(|x-y|)]
 %
 % where H_0^(1) is the principal branch of the Hankel function
@@ -80,7 +80,7 @@ rm5 = rm1.*rm4;
 % get value and r derivatives
       
 [g0,g1,g21,g3,g4,g5] = diff_h0log_and_rders(k,r,r2logrfac);
-
+g0 = -g0; g1 = -g1; g21 = -g21; g3 = -g3; g4 = -g4; g5 = -g5;
 %     evaluate potential and derivatives
 
 if nargout > 0

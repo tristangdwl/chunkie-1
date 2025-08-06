@@ -79,7 +79,7 @@ rm5 = rm1.*rm4;
 % get value and r derivatives
       
 [g0,g1,g21,g3,g4,g5] = diff_h0log_and_rders(k,r,r2logrfac);
-
+g0 = g0/2; g1 = g1/2; g21 = g21/2; g3 = g3/2; g4 = g4/2; g5 = g5/2;
 %     evaluate potential and derivatives
 
 if nargout > 0
