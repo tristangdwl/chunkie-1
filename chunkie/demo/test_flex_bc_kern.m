@@ -1,5 +1,4 @@
 
-
 phi = 0.3;
 src = []; src.r = [0;0]; src.n = [cos(phi);sin(phi)]; src.d = [cos(phi+pi/2);sin(phi+pi/2)];
 
@@ -11,11 +10,9 @@ kappa = 0.282842712474619;
 
 targ.d2 = [0.1;0.3];
 
-zk = 0.9; nu = 0.3;
+zk = 0.9; 
 % nu = 2;
 h = 1e-3;
-
-ifree = 0;
 
 %% checking all kernels in the clamped BCs
 

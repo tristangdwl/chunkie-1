@@ -49,21 +49,13 @@ end
 % boundary conditions applied to a point source
 if strcmpi(type, 'free_plate_bcs')
     targnorm = targinfo.n;
-    targtang = targinfo.d;
     
     [val, grad, hess, third] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);
 
     nxtarg = repmat((targnorm(1,:)).',1,ns);
     nytarg = repmat((targnorm(2,:)).',1,ns);
-    
-    dx1 = repmat((targtang(1,:)).',1,ns);
-    dy1 = repmat((targtang(2,:)).',1,ns);
-    
-    ds1 = sqrt(dx1.*dx1+dy1.*dy1); 
-    
-    tauxtarg = dx1./ds1;
-    tauytarg = dy1./ds1;
-        
+
+            
     firstbc = hess(:, :, 1) + hess(:, :, 3) + zk^2*val;
     
     secondbc = nxtarg.*(third(:,:,1) + third(:,:,3)) + ...
