@@ -101,6 +101,52 @@ if strcmpi(type, 'clamped_plate_eval')
 
 end
 
+% clamped plate kernels for plotting
+if strcmpi(type, 'clamped_plate_eval_test_1')
+
+
+    srcnorm = srcinfo.n;
+    srctang = srcinfo.d;
+    nx = repmat(srcnorm(1,:),nt,1);
+    ny = repmat(srcnorm(2,:),nt,1);
+    dx = repmat(srctang(1,:),nt,1);
+    dy = repmat(srctang(2,:),nt,1);
+    ds = sqrt(dx.*dx+dy.*dy);
+
+    taux = dx./ds;
+    tauy = dy./ds;
+
+    [~, ~, ~, third] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);           % Hankel part
+
+    submat = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
+       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
+       3*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+end
+
+
+% clamped plate kernels for plotting
+if strcmpi(type, 'clamped_plate_eval_test_2')
+
+    srcnorm = srcinfo.n;
+    srctang = srcinfo.d;
+    nx = repmat(srcnorm(1,:),nt,1);
+    ny = repmat(srcnorm(2,:),nt,1);
+    dx = repmat(srctang(1,:),nt,1);
+    dy = repmat(srctang(2,:),nt,1);
+    ds = sqrt(dx.*dx+dy.*dy);
+
+    taux = dx./ds;
+    tauy = dy./ds;
+
+    [~, ~, hess] = chnk.flex2d.helmdkdiffgreen(zk, src, targ);           % Hankel part
+
+    submat =  -(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
+          (hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
+
+end
+
 % free plate kernels for plotting
 if strcmpi(type, 'free_plate_eval')
 
@@ -129,6 +175,53 @@ if strcmpi(type, 'free_plate_eval')
 
     submat(:,1:2:end) = K1;
     submat(:,2:2:end) = K2;
+
+end
+
+
+% free plate kernels for plotting
+if strcmpi(type, 'free_plate_eval_test_1')
+
+    srcnorm = srcinfo.n;
+    srctang = srcinfo.d;
+    nx = repmat(srcnorm(1,:),nt,1);
+    ny = repmat(srcnorm(2,:),nt,1);
+    dx = repmat(srctang(1,:),nt,1);
+    dy = repmat(srctang(2,:),nt,1);
+    ds = sqrt(dx.*dx+dy.*dy);
+
+    taux = dx./ds;
+    tauy = dy./ds;
+
+    [~, ~, ~, third] = chnk.flex2d.helmdkdkdiffgreen(zk, src, targ);           % Hankel part
+
+    submat = -(third(:, :, 1).*(nx.*nx.*nx) + third(:, :, 2).*(3*nx.*nx.*ny) +...
+       third(:, :, 3).*(3*nx.*ny.*ny) + third(:, :, 4).*(ny.*ny.*ny)) - ...
+       3*(third(:, :, 1).*(nx.*taux.*taux) + third(:, :, 2).*(2*nx.*taux.*tauy + ny.*taux.*taux) +...
+       third(:, :, 3).*(nx.*tauy.*tauy + 2*ny.*taux.*tauy) + third(:, :, 4).*(ny.*tauy.*tauy));  % G_{ny ny ny} + 3G_{ny tauy tauy}
+
+end
+
+
+% free plate kernels for plotting
+if strcmpi(type, 'free_plate_eval_test_2')
+
+
+    srcnorm = srcinfo.n;
+    srctang = srcinfo.d;
+    nx = repmat(srcnorm(1,:),nt,1);
+    ny = repmat(srcnorm(2,:),nt,1);
+    dx = repmat(srctang(1,:),nt,1);
+    dy = repmat(srctang(2,:),nt,1);
+    ds = sqrt(dx.*dx+dy.*dy);
+
+    taux = dx./ds;
+    tauy = dy./ds;
+
+    [~, ~, hess] = chnk.flex2d.helmdkdkdiffgreen(zk, src, targ);           % Hankel part
+
+    submat =  -(hess(:, :, 1).*(nx.*nx) + hess(:, :, 2).*(2*nx.*ny) + hess(:, :, 3).*(ny.*ny))+...
+          (hess(:, :, 1).*(taux.*taux) + hess(:, :, 2).*(2*taux.*tauy) + hess(:, :, 3).*(tauy.*tauy)); % -G_{ny ny}  + G_{tauy tauy}
 
 end
 
